@@ -32,12 +32,13 @@ const schema = defineSchema(
       role: v.optional(roleValidator), // role of the user. do not remove
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
-    // add other tables here
-
-    // tableName: defineTable({
-    //   ...
-    //   // table fields
-    // }).index("by_field", ["field"])
+    // MarketSim: one global lobby chat (AI + player messages).
+    chat: defineTable({
+      author: v.string(),
+      kind: v.union(v.literal("player"), v.literal("ai"), v.literal("system")),
+      text: v.string(),
+      traderId: v.optional(v.string()),
+    }),
   },
   {
     schemaValidation: false,

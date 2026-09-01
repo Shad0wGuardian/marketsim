@@ -268,6 +268,8 @@ export interface AiTrader {
   emoji: string;
   /** One-line personality shown in the AI tab. */
   bio: string;
+  /** Virtual cash remaining from the trader's $100k starting stake. */
+  cash: number;
   /** Assets (by symbol) this trader focuses on. */
   focus: string[];
   /** Portfolio: symbol -> units held. */
@@ -286,6 +288,7 @@ export const AI_TRADERS: AiTrader[] = [
     bio: "Collectivist capital allocator. Believes every dip belongs to everyone.",
     focus: ["NVDA", "TSLA", "GOLD", "BTC"],
     holdings: { NVDA: 120, TSLA: 40, GOLD: 3, BTC: 0.5, WHEAT: 300 },
+    cash: 18_400,
     lines: [
       "The people's portfolio welcomes {sym} at {price}. A wise redistribution of risk.",
       "{sym} moved {pct}. Comrade, this is exactly what we planned at the last congress.",
@@ -300,7 +303,8 @@ export const AI_TRADERS: AiTrader[] = [
     emoji: "🦔",
     bio: "Risk-parity quant. Speaks only in hedge ratios and drawdown limits.",
     focus: ["JPM", "GOLD", "USDJPY", "WHEAT"],
-    holdings: { JPM: 85, GOLD: 5, USDJPY: 2000, WHEAT: 150, NEE: 60 },
+    holdings: { JPM: 85, GOLD: 5, USDJPY: 90, WHEAT: 150, NEE: 60 },
+    cash: 31_200,
     lines: [
       "Rebalancing note: {sym} at {pct} pushes my book past its variance budget. Trimming.",
       "{sym} at {price}. Correlation regime looks stable. No action required.",
@@ -316,6 +320,7 @@ export const AI_TRADERS: AiTrader[] = [
     bio: "Momentum scalper. Buys strength, sells weakness, never sleeps.",
     focus: ["AAPL", "NVDA", "WTI", "COPPER"],
     holdings: { AAPL: 60, NVDA: 90, WTI: 100, COPPER: 200 },
+    cash: 9_600,
     lines: [
       "Momentum signal on {sym}: {pct}. Entered. Stop is set.",
       "{sym} broke out to {price}. Riding it until the trend line snaps.",
@@ -331,6 +336,7 @@ export const AI_TRADERS: AiTrader[] = [
     bio: "Perma-bull on anything with a whitepaper. Says 'wagmi' unironically.",
     focus: ["BTC", "ETH", "SOL", "DOGE"],
     holdings: { BTC: 1.2, ETH: 15, SOL: 220, DOGE: 50000 },
+    cash: 4_200,
     lines: [
       "{sym} printing {pct}. Wagmi. That's it. That's the analysis.",
       "Just DCA'd into {sym} at {price}. Zoom out, plebs.",
@@ -346,6 +352,7 @@ export const AI_TRADERS: AiTrader[] = [
     bio: "Hard-money skeptic. Distrusts everything except shiny metals and uranium.",
     focus: ["GOLD", "SILVER", "U", "PLAT"],
     holdings: { GOLD: 8, SILVER: 400, U: 120, PLAT: 4 },
+    cash: 22_800,
     lines: [
       "{sym} at {price}. Fiat confidence erodes another day. Metals hold.",
       "{pct} on {sym}. Paper claims fade; bullion endures.",
@@ -355,6 +362,30 @@ export const AI_TRADERS: AiTrader[] = [
     chattiness: 0.3,
   },
 ];
+
+const BASE_PRICES: Record<string, number> = Object.fromEntries(
+  ASSETS.map((a) => [a.symbol, a.basePrice]),
+);
+
+function holdingsValueAt(
+  trader: AiTrader,
+  priceOf: (symbol: string) => number | undefined,
+): number {
+  return Object.entries(trader.holdings).reduce(
+    (sum, [sym, qty]) => sum + (priceOf(sym) ?? 0) * qty,
+    0,
+  );
+}
+
+/** Live net worth of an AI trader: cash + holdings at current prices. */
+export function aiNetWorth(trader: AiTrader, quotes: Map<string, Quote>): number {
+  return trader.cash + holdingsValueAt(trader, (sym) => quotes.get(sym)?.price ?? BASE_PRICES[sym]);
+}
+
+/** Net worth at session start (base prices) — the P&L baseline. */
+export function aiStartNetWorth(trader: AiTrader): number {
+  return trader.cash + holdingsValueAt(trader, (sym) => BASE_PRICES[sym]);
+}
 
 /** Pick an AI chat line for a tick, or null if the trader stays quiet. */
 export function aiChatLine(

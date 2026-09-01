@@ -16,10 +16,12 @@ import {
   formatPrice,
   type AssetCategory,
 } from "@/lib/marketsim";
-import { Loader2, Search, Star } from "lucide-react";
+import { Loader2, Search, Star, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Leaderboard } from "@/components/Leaderboard";
 
 type Filter = AssetCategory | "all" | "favorites";
+type Tab = "market" | "rank";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -29,6 +31,7 @@ export default function Dashboard() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [selected, setSelected] = useState("AAPL");
+  const [tab, setTab] = useState<Tab>("market");
 
   const comments = useQuery(api.comments.listForSymbol, { symbol: selected });
 
@@ -64,6 +67,28 @@ export default function Dashboard() {
             <h1 className="tracking-tight font-bold text-2xl">MarketSim</h1>
           </div>
           <div className="flex items-center gap-6">
+            <div className="flex rounded-lg border border-border/60 p-0.5">
+              <button
+                type="button"
+                onClick={() => setTab("market")}
+                className={cn(
+                  "cursor-pointer rounded-md px-3 py-1 text-sm transition-colors",
+                  tab === "market" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Market
+              </button>
+              <button
+                type="button"
+                onClick={() => setTab("rank")}
+                className={cn(
+                  "flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1 text-sm transition-colors",
+                  tab === "rank" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Trophy className="size-3.5" /> Rank
+              </button>
+            </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Cash</p>
               <p className="ms-mono text-lg">${formatPrice(cash)}</p>
@@ -79,6 +104,20 @@ export default function Dashboard() {
           </div>
         </header>
 
+        {tab === "rank" ? (
+          <div className="mx-auto w-full max-w-2xl">
+            <Leaderboard
+              quotes={quotes}
+              playerName={user?.name ?? ""}
+              playerNetWorth={netWorth}
+              selectedSymbol={selected}
+              onSelectSymbol={(sym) => {
+                setSelected(sym);
+                setTab("market");
+              }}
+            />
+          </div>
+        ) : (
         <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
           {/* Left: chart + market list */}
           <section className="flex flex-col gap-6">
@@ -302,6 +341,7 @@ export default function Dashboard() {
             </Card>
           </aside>
         </div>
+        )}
       </div>
     </main>
   );
